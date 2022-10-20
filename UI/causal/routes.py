@@ -6,19 +6,19 @@ import pandas as pd
 
 from shutil import copyfile
 from flask import *
-from skylearn.preprocessing import generic_preprocessing as gp
-from skylearn.modules import logistic as lg
-from skylearn.modules import naive_bayes as nb
-from skylearn.modules import linear_svc as lsvc
-from skylearn.modules import knn
-from skylearn.modules import decision_tree as dtree
-from skylearn.modules import random_forest as rfc
-from skylearn.visualization import visualize as vis
-from skylearn.nocache import nocache
-from skylearn import app
+from causal.preprocessing import generic_preprocessing as gp
+from causal.modules import logistic as lg
+from causal.modules import naive_bayes as nb
+from causal.modules import linear_svc as lsvc
+from causal.modules import knn
+from causal.modules import decision_tree as dtree
+from causal.modules import random_forest as rfc
+from causal.visualization import visualize as vis
+from causal.nocache import nocache
+from causal import app
 
 global posted
-save_path = "skylearn/uploads/"
+save_path = "causal/uploads/"
 exts = ["csv", "json", "yaml"]
 posted = 0
 
@@ -36,9 +36,9 @@ def preprocess():
             if ext in exts:
                 session["ext"] = ext
                 session["fname"] = data.filename
-                data.save("skylearn/uploads/" + data.filename)
-                df = gp.read_dataset("skylearn/uploads/" + data.filename)
-                df.to_csv("skylearn/clean/clean.csv")
+                data.save("causal/uploads/" + data.filename)
+                df = gp.read_dataset("causal/uploads/" + data.filename)
+                df.to_csv("causal/clean/clean.csv")
                 session["haha"] = True
                 flash(f"File uploaded successully", "success")
             else:
@@ -46,16 +46,16 @@ def preprocess():
 
         elif request.form["Submit"] == "Delete":
             try:
-                df = gp.read_dataset("skylearn/clean/clean.csv")
+                df = gp.read_dataset("causal/clean/clean.csv")
                 df = gp.delete_column(df, request.form.getlist("check_cols"))
-                df.to_csv("skylearn/clean/clean.csv", mode="w", index=False)
+                df.to_csv("causal/clean/clean.csv", mode="w", index=False)
                 flash(f"Column(s) deleted Successfully", "success")
             except:
                 flash(f"Error! Upload Dataset", "danger")
 
         elif request.form["Submit"] == "Clean":
             try:
-                df = gp.read_dataset("skylearn/clean/clean.csv")
+                df = gp.read_dataset("causal/clean/clean.csv")
                 print(request.form["how"])
                 if request.form["how"] is not "any":
                     df = gp.treat_missing_numeric(
@@ -68,14 +68,14 @@ def preprocess():
                         how=float(request.form["howNos"]),
                     )
 
-                df.to_csv("skylearn/clean/clean.csv", mode="w", index=False)
+                df.to_csv("causal/clean/clean.csv", mode="w", index=False)
                 flash(f"Column(s) cleant Successfully", "success")
             except:
                 flash(f"Error! Upload Dataset", "danger")
 
         elif request.form["Submit"] == "Visualize":
             global posted
-            df = gp.read_dataset("skylearn/clean/clean.csv")
+            df = gp.read_dataset("causal/clean/clean.csv")
 
             x_col = request.form["x_col"]
 
@@ -83,7 +83,7 @@ def preprocess():
                 posted = 1
 
     if session.get("haha") is not None:
-        df = gp.read_dataset("skylearn/clean/clean.csv")
+        df = gp.read_dataset("causal/clean/clean.csv")
         description = gp.get_description(df)
         columns = gp.get_columns(df)
         print(columns)

@@ -12,7 +12,7 @@ from sklearn.metrics import (
     confusion_matrix,
     make_scorer,
 )
-from skylearn.preprocessing import generic_preprocessing as gprep
+from causal.preprocessing import generic_preprocessing as gprep
 
 
 classification_Reports = []
@@ -64,7 +64,7 @@ def KNearestNeighbours(value, choice, scale_val, encode_val):
     accuracies.clear()
     target_Names.clear()
 
-    df = gprep.read_dataset("skylearn/clean/clean.csv")
+    df = gprep.read_dataset("causal/clean/clean.csv")
 
     X = df.iloc[:, 1:-1]
     y = df.iloc[:, -1]

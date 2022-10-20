@@ -42,9 +42,9 @@ def naiveBayes(value, choice, scale_val, encode_val):
     target_Names.clear()
 
     if (session['ext'] == 'csv'):
-        df = pd.read_csv('skylearn/clean/clean.csv')
+        df = pd.read_csv('causal/clean/clean.csv')
     elif (session['ext'] == 'json'):
-        df = pd.read_json('skylearn/clean/clean.json')
+        df = pd.read_json('causal/clean/clean.json')
 
     X = df.iloc[ : , 1 : -1]
     y = df.iloc[ : , -1]

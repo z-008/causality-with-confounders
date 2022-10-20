@@ -5,4 +5,4 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv('SECRET_KEY')
 app.secret_key = "HelloWorld"
 
-from skylearn import routes
+from causal import routes
