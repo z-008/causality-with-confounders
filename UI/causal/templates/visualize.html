@@ -5,6 +5,85 @@
         width: 100px;        
     }
 </style> -->
+{% block stylesheets %}
+
+<script src="https://d3js.org/d3.v5.min.js"></script>
+{% endblock stylesheets %}
+
+<style>
+
+table{
+  width:100%;
+}
+
+.default-row-spacer{
+    margin-bottom:10px;
+}
+.default-spacer{
+    margin-right:10px;
+}
+.large-row-spacer{
+    margin-bottom:20px;
+}
+
+svg {
+    background-color: #FFF;
+    cursor: default;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+  }
+  
+  svg:not(.active):not(.ctrl) {
+    cursor: crosshair;
+  }
+  
+  path.link {
+    fill: none;
+    stroke: rgb(0, 0, 0);
+    stroke-width: 4px;
+    cursor: default;
+  }
+  
+  svg:not(.active):not(.ctrl) path.link {
+    cursor: pointer;
+  }
+  
+  path.link.selected {
+    stroke-dasharray: 10,2;
+  }
+  
+  path.link.dragline {
+    pointer-events: none;
+  }
+  
+  path.link.hidden {
+    stroke-width: 0;
+  }
+  
+  circle.node {
+    stroke-width: 1.5px;
+    cursor: pointer;
+  }
+  
+  circle.node.reflexive {
+    stroke: #000 !important;
+    stroke-width: 2.5px;
+  }
+  
+  text {
+    font: 12px sans-serif;
+    pointer-events: none;
+  }
+  
+  text.id {
+    text-anchor: middle;
+    font-weight: bold;
+  }
+</style>
+
 
 <div class="container">
     <div class="row row-cols-2">
@@ -16,7 +95,7 @@
         </div> -->
         <div class="col">
             <div class="content-section">
-                <legend class="border-bottom mb-4">Column-Relation Visualization</legend>
+                <legend class="border-bottom mb-4">Causal Graph Visualization</legend>
                 <form action="/visualize" method="POST">
                 <div class="container">
                     <div class="row row-cols-3">
@@ -27,14 +106,15 @@
                             <label>Select Target Feature</label>
                         </div>
                         <div class="col">
-                            <button type="submit" class="btn btn-secondary">Visualize</button>
-                        </div>
+                          <label>Select Treatment</label>
+                      </div>
                     </div>
+
                     <div class="row row-cols-3">
                         <div class="col">
-                            <select name="x_col" class="form-control" >
+                            <select name="x_col" class="form-control"  multiple="multiple">
                                 {% for each in cols %}
-                                    <option value="{{each}}" {% if each == "x_col" %} selected {% endif %}>{{each}}</option>
+                                    <option value="{{each}}" >{{each}}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -44,15 +124,505 @@
                                     <option value="{{each}}" {% if each == "y_col" %} selected {% endif %}>{{each}}</option>
                                 {% endfor %}
                             </select>
+                            <label>Select Benchmark</label>
+
+                            <select name="b_col" class="form-control" >
+                              {% for each in cols %}
+                                  <option value="{{each}}" {% if each == "b_col" %} selected {% endif %}>{{each}}</option>
+                              {% endfor %}
+                          </select>
+                          
                         </div>
-                        <div class="col"></div>
+                        <div class="col">
+                          <select name="t_col" class="form-control" >
+                            {% for each in cols %}
+                                <option value="{{each}}" {% if each == "t_col" %} selected {% endif %}>{{each}}</option>
+                            {% endfor %}
+                        </select>
+                        <br>
+                        <button type="submit" class="btn btn-secondary">Visualize</button>
+                        
+                      </div>
                     </div>
+                    <!-- <div class="row row-cols-3">
+                      <div class="col">
+                      </div>
+                      <div class="col">
+                          <label>Select Benchmark</label>
+                      </div>
+                      <div class="col">
+                    </div>
+                  </div> -->
+                    <!-- <div class="row row-cols-3">
+                      <div class="col">
+                      </div>
+                      <div class="col">
+                          <select name="b_col" class="form-control" >
+                              {% for each in cols %}
+                                  <option value="{{each}}" {% if each == "b_col" %} selected {% endif %}>{{each}}</option>
+                              {% endfor %}
+                          </select>
+                      </div>
+                      <div class="col">
+                        <button type="submit" class="btn btn-secondary">Visualize</button>
+                    </div>
+                  </div> -->
+                  </form>
                 </div>
                     
-                
+                <br>
                 {% if posted == 1 %}
                     {% if data %}
-                        <canvas id="myChart1" width="450px" height="450px"></canvas>
+                    <div >
+                    <!-- <div><img src="..//static/img/graph.png" height="525px" width="525px" alt="img not loaded"/></div> -->
+                    <div id="graphcontainer" style="margin:0 auto;"/>
+                    <script type="text/javascript">                 
+                            // set up SVG for D3
+                        const width = 800;
+                        const height = 380;
+                        const colors = d3.scaleOrdinal(d3.schemeCategory10);
+                        
+                        const svg = d3.select('#graphcontainer')
+                          .append('svg')
+                          .on('contextmenu', () => { d3.event.preventDefault(); })
+                          .attr('width', width)
+                          .attr('height', height);
+                        
+                        // set up initial nodes and links
+                        //  - nodes are known by 'id', not by index in array.
+                        //  - reflexive edges are indicated on the node (as a bold black circle).
+                        //  - links are always source < target; edge directions are set by 'left' and 'right'.
+                        const graph_nodes ={{nodes | safe}} ;
+                        console.log(graph_nodes);
+                        let nodes = [];
+                        for (let i = 0; i < graph_nodes.length; i++) {
+                          nodes.push({id: graph_nodes[i], reflexive: false});
+                        }
+                        
+                        let lastNodeId = 2;
+                        
+                        console.log(nodes);
+                        const graph_edges ={{edges | safe}} ;
+                        
+                        let links = [];
+                        for (let i = 0; i < graph_edges.length; i++) {
+                          links.push({source: graph_edges[i][0], target: graph_edges[i][1], left: new String(graph_edges[i][2]).valueOf() == new String("T").valueOf() , right: new String(graph_edges[i][3]).valueOf() == new String("T").valueOf()});
+                        }
+                        //  { source: nodes[0], target: nodes[1], left: false, right: true },
+                        //  { source: nodes[1], target: nodes[2], left: false, right: true };
+                        
+                        // init D3 force layout
+                        const force = d3.forceSimulation()
+                          .force('link', d3.forceLink().id((d) => d.id).distance(150))
+                          .force('charge', d3.forceManyBody().strength(-500))
+                          .force('x', d3.forceX(width / 2))
+                          .force('y', d3.forceY(height / 2))
+                          .on('tick', tick);
+                        
+                        // init D3 drag support
+                        const drag = d3.drag()
+                          // Mac Firefox doesn't distinguish between left/right click when Ctrl is held... 
+                          .filter(() => d3.event.button === 0 || d3.event.button === 2)
+                          .on('start', (d) => {
+                            if (!d3.event.active) force.alphaTarget(0.3).restart();
+                        
+                            d.fx = d.x;
+                            d.fy = d.y;
+                          })
+                          .on('drag', (d) => {
+                            d.fx = d3.event.x;
+                            d.fy = d3.event.y;
+                          })
+                          .on('end', (d) => {
+                            if (!d3.event.active) force.alphaTarget(0);
+                        
+                            d.fx = null;
+                            d.fy = null;
+                          });
+                        
+                        // define arrow markers for graph links
+                        svg.append('svg:defs').append('svg:marker')
+                            .attr('id', 'end-arrow')
+                            .attr('viewBox', '0 -5 10 10')
+                            .attr('refX', 6)
+                            .attr('markerWidth', 3)
+                            .attr('markerHeight', 3)
+                            .attr('orient', 'auto')
+                          .append('svg:path')
+                            .attr('d', 'M0,-5L10,0L0,5')
+                            .attr('fill', '#000');
+                        
+                        svg.append('svg:defs').append('svg:marker')
+                            .attr('id', 'start-arrow')
+                            .attr('viewBox', '0 -5 10 10')
+                            .attr('refX', 4)
+                            .attr('markerWidth', 3)
+                            .attr('markerHeight', 3)
+                            .attr('orient', 'auto')
+                          .append('svg:path')
+                            .attr('d', 'M10,-5L0,0L10,5')
+                            .attr('fill', '#000');
+                        
+                        // line displayed when dragging new nodes
+                        const dragLine = svg.append('svg:path')
+                          .attr('class', 'link dragline hidden')
+                          .attr('d', 'M0,0L0,0');
+                        
+                        // handles to link and node element groups
+                        let path = svg.append('svg:g').selectAll('path');
+                        let circle = svg.append('svg:g').selectAll('g');
+                        
+                        // mouse event vars
+                        let selectedNode = null;
+                        let selectedLink = null;
+                        let mousedownLink = null;
+                        let mousedownNode = null;
+                        let mouseupNode = null;
+                        
+                        function resetMouseVars() {
+                          mousedownNode = null;
+                          mouseupNode = null;
+                          mousedownLink = null;
+                        }
+                        
+                        // update force layout (called automatically each iteration)
+                        function tick() {
+                          // draw directed edges with proper padding from node centers
+                          path.attr('d', (d) => {
+                            const deltaX = d.target.x - d.source.x;
+                            const deltaY = d.target.y - d.source.y;
+                            const dist = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                            const normX = deltaX / dist;
+                            const normY = deltaY / dist;
+                            const sourcePadding = d.left ? 17 : 12;
+                            const targetPadding = d.right ? 17 : 12;
+                            const sourceX = d.source.x + (sourcePadding * normX);
+                            const sourceY = d.source.y + (sourcePadding * normY);
+                            const targetX = d.target.x - (targetPadding * normX);
+                            const targetY = d.target.y - (targetPadding * normY);
+                        
+                            return `M${sourceX},${sourceY}L${targetX},${targetY}`;
+                          });
+                        
+                          circle.attr('transform', (d) => `translate(${d.x},${d.y})`);
+                        }
+                        
+                        // update graph (called when needed)
+                        function restart() {
+                          // path (link) group
+                          path = path.data(links);
+                        
+                          // update existing links
+                          path.classed('selected', (d) => d === selectedLink)
+                            .style('marker-start', (d) => d.left ? 'url(#start-arrow)' : '')
+                            .style('marker-end', (d) => d.right ? 'url(#end-arrow)' : '');
+                        
+                          // remove old links
+                          path.exit().remove();
+                        
+                          // add new links
+                          path = path.enter().append('svg:path')
+                            .attr('class', 'link')
+                            .classed('selected', (d) => d === selectedLink)
+                            .style('marker-start', (d) => d.left ? 'url(#start-arrow)' : '')
+                            .style('marker-end', (d) => d.right ? 'url(#end-arrow)' : '')
+                            .on('mousedown', (d) => {
+                              if (d3.event.ctrlKey) return;
+                        
+                              // select link
+                              mousedownLink = d;
+                              selectedLink = (mousedownLink === selectedLink) ? null : mousedownLink;
+                              selectedNode = null;
+                              restart();
+                            })
+                            .merge(path);
+                        
+                          // circle (node) group
+                          // NB: the function arg is crucial here! nodes are known by id, not by index!
+                          circle = circle.data(nodes, (d) => d.id);
+                        
+                          // update existing nodes (reflexive & selected visual states)
+                          circle.selectAll('circle')
+                            .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+                            .classed('reflexive', (d) => d.reflexive);
+                        
+                          // remove old nodes
+                          circle.exit().remove();
+                        
+                          // add new nodes
+                          const g = circle.enter().append('svg:g');
+                        
+                          g.append('svg:circle')
+                            .attr('class', 'node')
+                            .attr('r', 12)
+                            .style('fill', (d) => (d === selectedNode) ? d3.rgb(colors(d.id)).brighter().toString() : colors(d.id))
+                            .style('stroke', (d) => d3.rgb(colors(d.id)).darker().toString())
+                            .classed('reflexive', (d) => d.reflexive)
+                            .on('mouseover', function (d) {
+                              if (!mousedownNode || d === mousedownNode) return;
+                              // enlarge target node
+                              d3.select(this).attr('transform', 'scale(1.1)');
+                            })
+                            .on('mouseout', function (d) {
+                              if (!mousedownNode || d === mousedownNode) return;
+                              // unenlarge target node
+                              d3.select(this).attr('transform', '');
+                            })
+                            .on('mousedown', (d) => {
+                              if (d3.event.ctrlKey) return;
+                        
+                              // select node
+                              mousedownNode = d;
+                              selectedNode = (mousedownNode === selectedNode) ? null : mousedownNode;
+                              selectedLink = null;
+                        
+                              // reposition drag line
+                              dragLine
+                                .style('marker-end', 'url(#end-arrow)')
+                                .classed('hidden', false)
+                                .attr('d', `M${mousedownNode.x},${mousedownNode.y}L${mousedownNode.x},${mousedownNode.y}`);
+                        
+                              restart();
+                            })
+                            .on('mouseup', function (d) {
+                              if (!mousedownNode) return;
+                        
+                              // needed by FF
+                              dragLine
+                                .classed('hidden', true)
+                                .style('marker-end', '');
+                        
+                              // check for drag-to-self
+                              mouseupNode = d;
+                              if (mouseupNode === mousedownNode) {
+                                resetMouseVars();
+                                return;
+                              }
+                        
+                              // unenlarge target node
+                              d3.select(this).attr('transform', '');
+                        
+                              // add link to graph (update if exists)
+                              // NB: links are strictly source < target; arrows separately specified by booleans
+                              const isRight = mousedownNode.id < mouseupNode.id;
+                              const source = isRight ? mousedownNode : mouseupNode;
+                              const target = isRight ? mouseupNode : mousedownNode;
+                        
+                              const link = links.filter((l) => l.source === source && l.target === target)[0];
+                              if (link) {
+                                link[isRight ? 'right' : 'left'] = true;
+                              } else {
+                                links.push({ source, target, left: !isRight, right: isRight });
+                              }
+                        
+                              // select new link
+                              selectedLink = link;
+                              selectedNode = null;
+                              restart();
+                            });
+                        
+                          // show node IDs
+                          g.append('svg:text')
+                            .attr('x', 0)
+                            .attr('y', 4)
+                            .attr('class', 'id')
+                            .text((d) => d.id);
+                        
+                          circle = g.merge(circle);
+                        
+                          // set the graph in motion
+                          force
+                            .nodes(nodes)
+                            .force('link').links(links);
+                        
+                          force.alphaTarget(0.3).restart();
+                          let hiddenGraphLinksInput = document.getElementById('GraphLinks');
+                          hiddenGraphLinksInput.value = JSON.stringify(links);
+                          let hiddenGraphNodesInput = document.getElementById('GraphNodes');
+                          hiddenGraphNodesInput.value = JSON.stringify(nodes);
+                        }
+                        
+                        function mousedown() {
+                          // because :active only works in WebKit?
+                          svg.classed('active', true);
+                        
+                          if (d3.event.ctrlKey || mousedownNode || mousedownLink) return;
+                        
+                          // insert new node at point
+                          const point = d3.mouse(this);
+                          //const node = { id: ++lastNodeId, reflexive: false, x: point[0], y: point[1] };
+                          //nodes.push(node);
+                        
+                          restart();
+                        }
+                        
+                        function mousemove() {
+                          if (!mousedownNode) return;
+                        
+                          // update drag line
+                          dragLine.attr('d', `M${mousedownNode.x},${mousedownNode.y}L${d3.mouse(this)[0]},${d3.mouse(this)[1]}`);
+                        }
+                        
+                        function mouseup() {
+                          if (mousedownNode) {
+                            // hide drag line
+                            dragLine
+                              .classed('hidden', true)
+                              .style('marker-end', '');
+                          }
+                        
+                          // because :active only works in WebKit?
+                          svg.classed('active', false);
+                        
+                          // clear mouse event vars
+                          resetMouseVars();
+                        }
+                        
+                        function spliceLinksForNode(node) {
+                          const toSplice = links.filter((l) => l.source === node || l.target === node);
+                          for (const l of toSplice) {
+                            links.splice(links.indexOf(l), 1);
+                          }
+                        }
+                        
+                        // only respond once per keydown
+                        let lastKeyDown = -1;
+                        
+                        function keydown() {
+                          d3.event.preventDefault();
+                        
+                          if (lastKeyDown !== -1) return;
+                          lastKeyDown = d3.event.keyCode;
+                        
+                          // ctrl
+                          if (d3.event.keyCode === 17) {
+                            circle.call(drag);
+                            svg.classed('ctrl', true);
+                            return;
+                          }
+                        
+                          if (!selectedNode && !selectedLink) return;
+                        
+                          switch (d3.event.keyCode) {
+                            case 8: // backspace
+                            case 46: // delete
+                              if (selectedNode) {
+                                nodes.splice(nodes.indexOf(selectedNode), 1);
+                                spliceLinksForNode(selectedNode);
+                              } else if (selectedLink) {
+                                links.splice(links.indexOf(selectedLink), 1);
+                              }
+                              selectedLink = null;
+                              selectedNode = null;
+                              restart();
+                              break;
+                            case 66: // B
+                              if (selectedLink) {
+                                // set link direction to both left and right
+                                selectedLink.left = true;
+                                selectedLink.right = true;
+                              }
+                              restart();
+                              break;
+                            case 76: // L
+                              if (selectedLink) {
+                                // set link direction to left only
+                                selectedLink.left = true;
+                                selectedLink.right = false;
+                              }
+                              restart();
+                              break;
+                            case 82: // R
+                              if (selectedNode) {
+                                // toggle node reflexivity
+                                selectedNode.reflexive = !selectedNode.reflexive;
+                              } else if (selectedLink) {
+                                // set link direction to right only
+                                selectedLink.left = false;
+                                selectedLink.right = true;
+                              }
+                              restart();
+                              break;
+                          }
+                        }
+                        
+                        function keyup() {
+                          lastKeyDown = -1;
+                        
+                          // ctrl
+                          if (d3.event.keyCode === 17) {
+                            circle.on('.drag', null);
+                            svg.classed('ctrl', false);
+                          }
+                        }
+                        
+                        // app starts here
+                        svg.on('mousedown', mousedown)
+                          .on('mousemove', mousemove)
+                          .on('mouseup', mouseup);
+                        d3.select(window)
+                          .on('keydown', keydown)
+                          .on('keyup', keyup);
+                        restart();
+                        </script>
+                     <div class="card-footer p-2 default-row-spacer">
+                      <div class="small mt-2">
+                        <p>
+                          <span class="fw-bold text-info me-2">Drag</span>
+                          <span class="fw-normal">from one node to another to add an edge.</span>
+                        </p>
+                        <p>
+                          <span class="fw-bold text-info me-2">Ctrl-drag</span>
+                          <span class="fw-normal">a node to move the graph layout.</span>
+                        </p>
+                        <p>
+                          <span class="fw-bold text-info me-2">Click</span>
+                          <span class="fw-normal">an edge to select it.</span>
+                        </p>
+                        <p>
+                          <span class="fw-bold text-info me-2">L(eft), R(ight), B(oth)</span>
+                          <span class="fw-normal">change direction.</span>
+                        </p>
+                        <p>
+                          <span class="fw-bold text-info me-2">Delete</span>
+                          <span class="fw-normal">removes the edge.</span>
+                        </p>
+                      </div>
+                        <form action="/visualize" method="POST">
+                        
+                        <!-- <div class="d-flex">
+                          <button type="submit" id="submit_causal_structure" name="submit_causal_structure" class="btn btn-secondary">Update</button>
+                          <input type="hidden" id="GraphLinks" name="GraphLinks" value="3487">
+                          <input type="hidden" id="GraphNodes" name="GraphNodes" value="3487">
+                        </div> -->
+                      </form>
+                    </div>  
+                   
+                    
+                    <div class="card mb-3">
+                      <div class="content-section">
+                        <legend class="border-bottom mb-4">Confounder Analysis</legend> 
+                        
+                        {% if htmlc %}{{htmlc|safe}}{% else %} None {% endif %}
+                      <br>
+
+                      <p>Verbal interpretation of sensitivity statistics:</p>
+
+                      <p>The <b>robustness value</b> for bringing the point estimate of <b>Requested Amount</b> exactly to zero ( RV {q=1} ) is <b> {{rv_q}}% </b> . This means that unobserved confounders that explain <b> {{rv_q}}% </b> of the residual variance both of the treatment and of the outcome are sufficiently strong to explain away all the observed effect. On the other hand, unobserved confounders that do not explain at least <b> {{rv_q}}% </b> of the residual variance both of the treatment and of the outcome are not sufficiently strong to do so.</p>
+
+                      <p> The <b>robustness value</b> for testing the null hypothesis that the coefficient of <b> Requested Amount </b> is zero (RV {q=1, alpha = 0.05}) falls to <b> {{rv_qa}}% </b>. This means that unobserved confounders that explain <b> {{rv_qa}}% </b> of the residual variance both of the treatment and of the outcome are sufficiently strong to bring the lower bound of the confidence interval to zero (at the chosen significance level of 5%). On the other hand, unobserved confounders that do not explain at least <b> {{rv_qa}}% </b> of the residual variance both of the treatment and of the outcome are not sufficiently strong to do so.</p>
+                      
+                      <p> Finally, the partial R^2 of <b> Requested Amount </b> with <b> Selected </b> means that, in an extreme scenario, in which we assume that unobserved confounders explain all of the left out variance of the outcome, these unobserved confounders would need to explain at least <b> {{r2yd_x}}% </b> of the residual variance of the treatment to fully explain away the observed effect. </p>
+                      
+                      <p> The lower corner of the table, further provides bounds on the strength of an unobserved confounder as strong as the observed covariate <b> Credit Score </b>, resulting in r2yz_dx = <b> {{r2yzdx}}% </b> and r2dz_x = <b> {{r2dzx}}% </b> . If both of those are below the RV of <b> {{rv_q}}% </b>, we conclude confounders as strong as <b> Credit score </b>, in explaining treatment and outcome variations, are not sufficiently strong to explain away the observed estimate. </p>
+                      
+                      <p> Moreover, the bound of r2dz_x = <b> {{r2dzx}}% </b> is below the partial R2 of the treatment with the outcome, r2yd_x = <b> {{r2yd_x}}% </b> , this means that even an extreme confounder explaining all residual variation of the outcome, and as strongly associated with the treatment as <b> Credit Score </b> would not be able to overturn the research conclusions.</p>
+
+                      </div>
+                    </div>
+                </div>
+            
+                        <!-- <canvas id="myChart1" width="450px" height="450px"></canvas>
                         <script type="text/javascript">
                         console.log('{{ y_col_name }}');
                             new Chart.Scatter(document.getElementById("myChart1"), {
@@ -84,7 +654,7 @@
                                     }
                                 }
                                 });
-                        </script>
+                        </script> -->
                     {% endif %}
                 {% endif %}
             
@@ -93,5 +663,4 @@
         </div>
     </div>
  </div>   
-    
-{% endblock content %}
+ {% endblock content %}

@@ -11,6 +11,8 @@ from causal.modules import logistic as lg
 from causal.modules import naive_bayes as nb
 from causal.modules import linear_svc as lsvc
 from causal.modules import knn
+from causal.modules import abc as causalg
+from causal.modules import model_graph as gph
 from causal.modules import decision_tree as dtree
 from causal.modules import random_forest as rfc
 from causal.visualization import visualize as vis
@@ -56,7 +58,7 @@ def preprocess():
         elif request.form["Submit"] == "Clean":
             try:
                 df = gp.read_dataset("causal/clean/clean.csv")
-                print(request.form["how"])
+                # print(request.form["how"])
                 if request.form["how"] is not "any":
                     df = gp.treat_missing_numeric(
                         df, request.form.getlist("check_cols"), how=request.form["how"]
@@ -86,7 +88,7 @@ def preprocess():
         df = gp.read_dataset("causal/clean/clean.csv")
         description = gp.get_description(df)
         columns = gp.get_columns(df)
-        print(columns)
+        # print(columns)
         dim1, dim2 = gp.get_dim(df)
         head = gp.get_head(df)
 
@@ -124,317 +126,236 @@ def preprocess():
         )
 
 
-@app.route("/classify", methods=["GET", "POST"])
-def classify():
-    acc = 0
+@app.route("/graph", methods=["GET", "POST"])
+def graph():
     if request.method == "POST":
-        target = request.form["target"]
-        gp.arrange_columns(target)
-        classifier = int(request.form["classifier"])
-        hidden_val = int(request.form["hidden"])
-        scale_val = int(request.form["scale_hidden"])
-        encode_val = int(request.form["encode_hidden"])
-        columns = vis.get_columns()
+        # target = request.form["target"]
+        # gp.arrange_columns(target)
+        graph = int(request.form["graph"])
+        # hidden_val = int(request.form["hidden"])
+        # scale_val = int(request.form["scale_hidden"])
+        # encode_val = int(request.form["encode_hidden"])
+        # columns = vis.get_columns()
 
-        if hidden_val == 0:
-            data = request.files["choiceVal"]
-            ext = data.filename.split(".")[1]
-            if ext in exts:
-                data.save("uploads/test." + ext)
-            else:
-                return "File type not accepted!"
-            choiceVal = 0
-        else:
-            choiceVal = int(request.form["choiceVal"])
+        # if hidden_val == 0:
+        #     data = request.files["choiceVal"]
+        #     ext = data.filename.split(".")[1]
+        #     if ext in exts:
+        #         data.save("uploads/test." + ext)
+        #     else:
+        #         return "File type not accepted!"
+        #     choiceVal = 0
+        # else:
+        #     choiceVal = int(request.form["choiceVal"])
 
-        if classifier == 0:
-            ret_vals = lg.logisticReg(choiceVal, hidden_val, scale_val, encode_val)
-            if hidden_val == 0 or hidden_val == 1:
+        if graph == 0:
+                gph.discover_bpmn_model()
                 return render_template(
                     "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=[
-                        ret_vals[1].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    conf_matrix=[
-                        ret_vals[2].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                )
-            elif hidden_val == 2:
+                    src="img/bpmn.png",
+                )    
+        elif graph == 1:
+                gph.discover_pn_model()
                 return render_template(
                     "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=ret_vals[1],
-                    conf_matrix=ret_vals[2],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
+                    src="img/pnet.png",
                 )
 
-        elif classifier == 1:
-            ret_vals = nb.naiveBayes(choiceVal, hidden_val, scale_val, encode_val)
-            if hidden_val == 0 or hidden_val == 1:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=[
-                        ret_vals[1].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    conf_matrix=[
-                        ret_vals[2].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
-            elif hidden_val == 2:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=ret_vals[1],
-                    conf_matrix=ret_vals[2],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
+    #     elif classifier == 2:
+    #         ret_vals = lsvc.lin_svc(choiceVal, hidden_val, scale_val, encode_val)
+    #         if hidden_val == 0 or hidden_val == 1:
+    #             return render_template(
+    #                 "classifier_page.html",
+    #                 acc=ret_vals[0],
+    #                 report=[
+    #                     ret_vals[1].to_html(
+    #                         classes=[
+    #                             "table",
+    #                             "table-bordered",
+    #                             "table-striped",
+    #                             "table-hover",
+    #                             "thead-light",
+    #                         ]
+    #                     )
+    #                 ],
+    #                 conf_matrix=[
+    #                     ret_vals[2].to_html(
+    #                         classes=[
+    #                             "table",
+    #                             "table-bordered",
+    #                             "table-striped",
+    #                             "table-hover",
+    #                             "thead-light",
+    #                         ]
+    #                     )
+    #                 ],
+    #                 choice=hidden_val,
+    #                 classifier_used=classifier,
+    #                 active="classify",
+    #                 title="Classify",
+    #                 cols=columns,
+    #             )
+    #         elif hidden_val == 2:
+    #             return render_template(
+    #                 "classifier_page.html",
+    #                 acc=ret_vals[0],
+    #                 report=ret_vals[1],
+    #                 conf_matrix=ret_vals[2],
+    #                 choice=hidden_val,
+    #                 classifier_used=classifier,
+    #                 active="classify",
+    #                 title="Classify",
+    #                 cols=columns,
+    #             )
 
-        elif classifier == 2:
-            ret_vals = lsvc.lin_svc(choiceVal, hidden_val, scale_val, encode_val)
-            if hidden_val == 0 or hidden_val == 1:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=[
-                        ret_vals[1].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    conf_matrix=[
-                        ret_vals[2].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
-            elif hidden_val == 2:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=ret_vals[1],
-                    conf_matrix=ret_vals[2],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
+    #     elif classifier == 3:
 
-        elif classifier == 3:
+    #         scale_val = 1
+    #         ret_vals = knn.KNearestNeighbours(
+    #             choiceVal, hidden_val, scale_val, encode_val
+    #         )
+    #         if hidden_val == 0 or hidden_val == 1:
+    #             return render_template(
+    #                 "classifier_page.html",
+    #                 acc=ret_vals[0],
+    #                 report=[
+    #                     ret_vals[1].to_html(
+    #                         classes=[
+    #                             "table",
+    #                             "table-bordered",
+    #                             "table-striped",
+    #                             "table-hover",
+    #                             "thead-light",
+    #                         ]
+    #                     )
+    #                 ],
+    #                 conf_matrix=[
+    #                     ret_vals[2].to_html(
+    #                         classes=[
+    #                             "table",
+    #                             "table-bordered",
+    #                             "table-striped",
+    #                             "table-hover",
+    #                             "thead-light",
+    #                         ]
+    #                     )
+    #                 ],
+    #                 choice=hidden_val,
+    #                 classifier_used=classifier,
+    #                 active="classify",
+    #                 title="Classify",
+    #                 cols=columns,
+    #             )
+    #         elif hidden_val == 2:
+    #             return render_template(
+    #                 "classifier_page.html",
+    #                 acc=ret_vals[0],
+    #                 report=ret_vals[1],
+    #                 conf_matrix=ret_vals[2],
+    #                 choice=hidden_val,
+    #                 classifier_used=classifier,
+    #                 active="classify",
+    #                 title="Classify",
+    #                 cols=columns,
+    #             )
 
-            scale_val = 1
-            ret_vals = knn.KNearestNeighbours(
-                choiceVal, hidden_val, scale_val, encode_val
-            )
-            if hidden_val == 0 or hidden_val == 1:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=[
-                        ret_vals[1].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    conf_matrix=[
-                        ret_vals[2].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
-            elif hidden_val == 2:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=ret_vals[1],
-                    conf_matrix=ret_vals[2],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
-
-        elif classifier == 4:
-            ret_vals = dtree.DecisionTree(choiceVal, hidden_val, scale_val, encode_val)
-            if hidden_val == 0 or hidden_val == 1:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=[
-                        ret_vals[1].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    conf_matrix=[
-                        ret_vals[2].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
-            elif hidden_val == 2:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=ret_vals[1],
-                    conf_matrix=ret_vals[2],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
-        elif classifier == 5:
-            ret_vals = rfc.RandomForest(choiceVal, hidden_val, scale_val, encode_val)
-            if hidden_val == 0 or hidden_val == 1:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=[
-                        ret_vals[1].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    conf_matrix=[
-                        ret_vals[2].to_html(
-                            classes=[
-                                "table",
-                                "table-bordered",
-                                "table-striped",
-                                "table-hover",
-                                "thead-light",
-                            ]
-                        )
-                    ],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
-            elif hidden_val == 2:
-                return render_template(
-                    "classifier_page.html",
-                    acc=ret_vals[0],
-                    report=ret_vals[1],
-                    conf_matrix=ret_vals[2],
-                    choice=hidden_val,
-                    classifier_used=classifier,
-                    active="classify",
-                    title="Classify",
-                    cols=columns,
-                )
-    elif request.method == "GET":
-        columns = vis.get_columns()
-        return render_template(
+    #     elif classifier == 4:
+    #         ret_vals = dtree.DecisionTree(choiceVal, hidden_val, scale_val, encode_val)
+    #         if hidden_val == 0 or hidden_val == 1:
+    #             return render_template(
+    #                 "classifier_page.html",
+    #                 acc=ret_vals[0],
+    #                 report=[
+    #                     ret_vals[1].to_html(
+    #                         classes=[
+    #                             "table",
+    #                             "table-bordered",
+    #                             "table-striped",
+    #                             "table-hover",
+    #                             "thead-light",
+    #                         ]
+    #                     )
+    #                 ],
+    #                 conf_matrix=[
+    #                     ret_vals[2].to_html(
+    #                         classes=[
+    #                             "table",
+    #                             "table-bordered",
+    #                             "table-striped",
+    #                             "table-hover",
+    #                             "thead-light",
+    #                         ]
+    #                     )
+    #                 ],
+    #                 choice=hidden_val,
+    #                 classifier_used=classifier,
+    #                 active="classify",
+    #                 title="Classify",
+    #                 cols=columns,
+    #             )
+    #         elif hidden_val == 2:
+    #             return render_template(
+    #                 "classifier_page.html",
+    #                 acc=ret_vals[0],
+    #                 report=ret_vals[1],
+    #                 conf_matrix=ret_vals[2],
+    #                 choice=hidden_val,
+    #                 classifier_used=classifier,
+    #                 active="classify",
+    #                 title="Classify",
+    #                 cols=columns,
+    #             )
+    #     elif classifier == 5:
+    #         ret_vals = rfc.RandomForest(choiceVal, hidden_val, scale_val, encode_val)
+    #         if hidden_val == 0 or hidden_val == 1:
+    #             return render_template(
+    #                 "classifier_page.html",
+    #                 acc=ret_vals[0],
+    #                 report=[
+    #                     ret_vals[1].to_html(
+    #                         classes=[
+    #                             "table",
+    #                             "table-bordered",
+    #                             "table-striped",
+    #                             "table-hover",
+    #                             "thead-light",
+    #                         ]
+    #                     )
+    #                 ],
+    #                 conf_matrix=[
+    #                     ret_vals[2].to_html(
+    #                         classes=[
+    #                             "table",
+    #                             "table-bordered",
+    #                             "table-striped",
+    #                             "table-hover",
+    #                             "thead-light",
+    #                         ]
+    #                     )
+    #                 ],
+    #                 choice=hidden_val,
+    #                 classifier_used=classifier,
+    #                 active="classify",
+    #                 title="Classify",
+    #                 cols=columns,
+    #             )
+    #         elif hidden_val == 2:
+    #             return render_template(
+    #                 "classifier_page.html",
+    #                 acc=ret_vals[0],
+    #                 report=ret_vals[1],
+    #                 conf_matrix=ret_vals[2],
+    #                 choice=hidden_val,
+    #                 classifier_used=classifier,
+    #                 active="classify",
+    #                 title="Classify",
+    #                 cols=columns,
+    #             )
+        elif request.method == "GET":
+         columns = vis.get_columns()
+         return render_template(
             "classifier_page.html", active="classify", title="Classify", cols=columns
-        )
+         )
 
 
 @app.route("/clear", methods=["GET"])
@@ -447,9 +368,12 @@ def clear():
 @nocache
 def visualize():
     if request.method == "POST":
-        x_col = request.form["x_col"]
+        
+        x_col = request.form.getlist('x_col')
         y_col = request.form["y_col"]
-
+        b_col = request.form["b_col"]
+        t_col = request.form["t_col"]
+        context,html_code,s,r2yz_dx,r2dz_x = causalg.causal_graph(y_col,x_col,b_col,t_col)
         df = vis.xy_plot(x_col, y_col)
         heights = np.array(df[x_col]).tolist()
         weights = np.array(df[y_col]).tolist()
@@ -460,12 +384,24 @@ def visualize():
         ugly_blob = str(newlist).replace("'", "")
 
         columns = vis.get_columns()
-        print(x_col)
         return render_template(
             "visualize.html",
-            cols=columns,
-            src="img/pairplot1.png",
-            xy_src="img/fig.png",
+            nodes = context['nodes'],
+            edges = context['edges'],
+            htmlc = html_code,
+            estimate =  s['estimate'],
+            se = s['se'],
+            t_statistic = s['t_statistic'],
+            r2yd_x = round(s['r2yd_x']*100,1),
+            rv_q = round(s['rv_q']*100,1),
+            rv_qa = round(s['rv_qa']*100,1),
+            f2yd_x = round(s['f2yd_x']*100,1),
+            dof = s['dof'],
+            r2yzdx = round(r2yz_dx,1),
+            r2dzx = round(r2dz_x,1),
+            cols = columns,
+            src="img/graph.png",
+            xy_src="img/graph.png",
             posted=1,
             data=ugly_blob,
             active="visualize",
@@ -475,7 +411,7 @@ def visualize():
         )
 
     else:
-        vis.pair_plot()
+        # vis.pair_plot()
         columns = vis.get_columns()
         return render_template(
             "visualize.html",
